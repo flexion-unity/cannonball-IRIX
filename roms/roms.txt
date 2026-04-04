@@ -56,3 +56,5 @@ http://reassembler.blogspot.co.uk/2013/01/outrun-original-game-shipped-with.html
 -------------------------------------------------------------------------------
 
 opr-10188.71f
+
+*cough* github.com *cough* jacktang/outrun-roms *cough*

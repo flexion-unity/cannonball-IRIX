@@ -7,6 +7,9 @@
 
 #include <cstring>
 #include <iostream>
+#ifdef __sgi
+#include <unistd.h> // _exit()
+#endif
 
 // SDL Library
 #include <SDL.h>
@@ -61,7 +64,12 @@ static void quit_func(int code)
     forcefeedback::close();
     delete menu;
     SDL_Quit();
+#ifdef __sgi
+    // special handling for SDL2 on IRIX to prevent segfault on exit
+    _exit(code);
+#else
     exit(code);
+#endif
 }
 
 static void process_events(void)
@@ -218,8 +226,16 @@ static void main_loop()
     bool vsync = config.video.vsync == 1 && video.supports_vsync();
     Timer frame_time;
     int t;                              // Actual timing of tick in ms as measured by SDL (ms)
-    double deltatime  = 0;              // Time we want an entire frame to take (ms)
-    int deltaintegral = 0;              // Integer version of above
+    double deltatime  = 0;             // Time we want an entire frame to take (ms)
+    int deltaintegral = 0;             // Integer version of above
+
+    // Skip frames if we are at the limit
+#ifdef __sgi
+    static const int MAX_FRAMESKIP = 4;
+#else
+    static const int MAX_FRAMESKIP = 0; // disabled on other platforms
+#endif
+    int skip_count = 0;
 
     while (state != STATE_QUIT)
     {
@@ -227,20 +243,40 @@ static void main_loop()
         // Tick Engine
         tick();
 
-        // Draw SDL Video
-        video.prepare_frame();
-        video.render_frame();
+        // Draw SDL Video — skipped when we are behind and below the skip cap.
+        // audio.tick() is always called to keep the audio buffer fed.
+        bool do_render = true;
+#ifdef __sgi
+        if (!vsync && MAX_FRAMESKIP > 0)
+        {
+            t = frame_time.get_ticks();
+            if (skip_count < MAX_FRAMESKIP && t > (int)deltatime + (int)frame_ms)
+            {
+                do_render = false;
+                skip_count++;
+            }
+            else
+            {
+                skip_count = 0;
+            }
+        }
+#endif
+        if (do_render)
+        {
+            video.prepare_frame();
+            video.render_frame();
+        }
 
         // Fill SDL Audio Buffer For Callback
         audio.tick();
-        
+
         // Calculate Timings. Cap Frame Rate. Note this might be trumped by V-Sync
         if (!vsync)
         {
             deltatime += (frame_ms * audio.adjust_speed());
             deltaintegral = (int)deltatime;
             t = frame_time.get_ticks();
-            
+
             if (t < deltatime)
                 SDL_Delay((Uint32)(deltatime - t));
 

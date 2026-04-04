@@ -13,7 +13,7 @@ project (cannonball)
 # -----------------------------------------------------------------------------
 
 # CMake default file (override with -DTARGET=file)
-set(DCMAKE win64-opengl.cmake)
+set(DCMAKE irix.cmake)
 
 # Source location
 set(main_cpp_base ../src/main)

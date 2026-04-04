@@ -123,6 +123,16 @@ bool Render::init(int src_width, int src_height,
     if (surface)
         SDL_FreeSurface(surface);
 
+#ifdef __sgi
+    surface = SDL_CreateRGBSurface(0,
+                                  src_width,
+                                  src_height,
+                                  bpp,
+                                  0x00FF0000,  // Rmask
+                                  0x0000FF00,  // Gmask
+                                  0x000000FF,  // Bmask
+                                  0xFF000000); // Amask
+#else
     surface = SDL_CreateRGBSurface(0,
                                   src_width,
                                   src_height,
@@ -131,6 +141,7 @@ bool Render::init(int src_width, int src_height,
                                   0,
                                   0,
                                   0);
+#endif
 
     if (!surface)
     {
@@ -144,6 +155,14 @@ bool Render::init(int src_width, int src_height,
         flags);
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
+    if (!renderer)
+    {
+        // Use software renderer if not available (not every SGI has Texture RAM)
+        std::cout << "Note: HW renderer unavailable (" << SDL_GetError()
+                  << "), using software renderer." << std::endl;
+        renderer = SDL_CreateRenderer(window, -1, 0);
+    }
+
     texture = SDL_CreateTexture(renderer,
                                SDL_PIXELFORMAT_ARGB8888,
                                SDL_TEXTUREACCESS_STREAMING,
@@ -204,8 +223,28 @@ bool Render::finalize_frame()
 void Render::draw_frame(uint16_t* pixels)
 {
     uint32_t* spix = screen_pixels;
+    int total = src_width * src_height;
 
-    // Lookup real RGB value from rgb array for backbuffer
-    for (int i = 0; i < (src_width * src_height); i++)
+#ifdef __sgi
+    // some performance tuning for IRIX/MIPS
+    int i = 0;
+    for (; i <= total - 8; i += 8)
+    {
+        spix[0] = rgb[pixels[0]];
+        spix[1] = rgb[pixels[1]];
+        spix[2] = rgb[pixels[2]];
+        spix[3] = rgb[pixels[3]];
+        spix[4] = rgb[pixels[4]];
+        spix[5] = rgb[pixels[5]];
+        spix[6] = rgb[pixels[6]];
+        spix[7] = rgb[pixels[7]];
+        spix += 8; pixels += 8;
+    }
+    for (; i < total; i++)
         *(spix++) = rgb[*(pixels++)];
+#else
+    // Lookup real RGB value from rgb array for backbuffer
+    for (int i = 0; i < total; i++)
+        *(spix++) = rgb[*(pixels++)];
+#endif
 }
