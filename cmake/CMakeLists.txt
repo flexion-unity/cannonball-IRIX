@@ -249,6 +249,13 @@ find_package(Boost REQUIRED)
 
 set(SDL2_DIR ${sdl2_dir})
 find_package(SDL2 REQUIRED)
+
+# Allow platform cmake to override with a static SDL2 library
+if(SDL2_STATIC_LIB)
+    set(SDL2_LIBRARIES ${SDL2_STATIC_LIB})
+    message("SDL2 static override: ${SDL2_STATIC_LIB}")
+endif()
+
 message("SDL2 Include  : ${SDL2_INCLUDE_DIRS}")
 message("SDL2 Libraries: ${SDL2_LIBRARIES}")
 
