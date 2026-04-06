@@ -34,8 +34,8 @@ set(platform_link_libs
     m
 )
 
-# Static link libstdc++ so the binary does not depend on the host libstdc++.so
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++")
+# Static link libstdc++ and libgcc
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
 
 # SGUG-RSE gcc 9 on IRIX does not support -rdynamic; suppress it.
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
